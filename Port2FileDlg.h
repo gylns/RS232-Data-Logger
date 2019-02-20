@@ -30,6 +30,8 @@ private:
 	CString m_sLogFile;
 	CString m_sRecvBytes;
 	CString m_sTotalFileSize;
+	int m_iPollDelay;
+	CString m_sTotalPollCounts;
 
 	CComboBox m_cbBaudrate;
 	CComboBox m_cbDataBits;
@@ -85,4 +87,7 @@ public:
 	afx_msg void OnCbnSelchangeCbFc        ();
 	afx_msg void OnBnClickedCheckAppend    ();
 	afx_msg void OnEnChangeEdLogfile       ();
+	afx_msg void OnBnClickedBtStartpoll();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnEnKillfocusEdPolldelay();
 };

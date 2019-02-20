@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by Port2File.rc
+// Microsoft Visual C++ 生成的包含文件。
+// 供 Port2File.rc 使用
 //
 #define IDM_ABOUTBOX                    16
 #define IDD_ABOUTBOX                    100
@@ -33,9 +33,12 @@
 #define IDC_STATIC_RECV                 1038
 #define IDC_STATIC_TOTAL                1039
 #define IDC_BT_HIDE                     1040
+#define IDC_STATIC_TOTAL2               1040
 #define IDC_STATIC_CAPTION              1041
 #define IDC_STATIC_TEXT                 1042
 #define IDC_STATIC_HYPERLINK            1043
+#define IDC_ED_POLLDELAY                1044
+#define IDC_BT_STARTPOLL                1045
 
 // Next default values for new objects
 // 
@@ -43,7 +46,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_CONTROL_VALUE         1046
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

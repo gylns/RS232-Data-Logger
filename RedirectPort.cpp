@@ -13,9 +13,10 @@ CRedirectPort::CRedirectPort(const CString& sPortName, bool IsActive, CWnd* pWnd
 	m_sStatusMessage = _T("Ready to start");
 
 	m_bLogStarted = FALSE;
-    m_bAppend     = FALSE;
+	m_bPollStarted = FALSE;
+	m_bAppend     = FALSE;
 	
-    m_nIndex = nIndex;
+	m_nIndex = nIndex;
 	// this is indexes 
 	m_dwBaudRate     = 9600;
 	m_iIndexDataBits = 3;
@@ -25,6 +26,7 @@ CRedirectPort::CRedirectPort(const CString& sPortName, bool IsActive, CWnd* pWnd
  	
 	m_stBytesInFile  = 0;
 	m_stBytesWritten = 0; 
+	m_stPollCounts = 0;
 }
 
 CRedirectPort::~CRedirectPort(void)
@@ -36,7 +38,7 @@ CRedirectPort::~CRedirectPort(void)
 void CRedirectPort::OnRxChar( DWORD dwCount )
 {
 	BYTE buffer[4096];
-    DWORD dwSymbolsRead = Read( (VOID*)buffer, 4096 );	
+	DWORD dwSymbolsRead = Read( (VOID*)buffer, 4096 );	
 
 	try
 	{
@@ -144,8 +146,8 @@ BOOL CRedirectPort::SaveSettings()
 	} 
 
 	// start logging 
-	DWORD dwStarted = (DWORD)m_bLogStarted;
-	RegSetValueEx( hKey, _T("logging"), 0, REG_DWORD, (BYTE*)&dwStarted, 4 ); 
+	//DWORD dwStarted = (DWORD)m_bLogStarted;
+	//RegSetValueEx( hKey, _T("logging"), 0, REG_DWORD, (BYTE*)&dwStarted, 4 ); 
 	
 	// redirect file
 	RegSetValueEx( hKey, _T("file"), 0, REG_SZ, (BYTE*)(LPCTSTR)m_sLogFile, m_sLogFile.GetLength() * sizeof (TCHAR) ); 
@@ -181,8 +183,8 @@ BOOL CRedirectPort::LoadSettings ( )
 	}
 	
 	DWORD cValues;              // number of values for key 
-    DWORD cchMaxValue;          // longest value name 
-    DWORD cbMaxValueData;       // longest value data 
+	DWORD cchMaxValue;          // longest value name 
+	DWORD cbMaxValueData;       // longest value data 
  	BYTE  bData [1024];
 	DWORD dwDataLen = 1024;
  
@@ -190,25 +192,25 @@ BOOL CRedirectPort::LoadSettings ( )
 	TCHAR achValue[254]; 
 	DWORD cchValue = 255; //16383; 
  
-    // Get the class name and the value count. 
-    retCode = RegQueryInfoKey( hKey, NULL, NULL, NULL, NULL, NULL, NULL, 
+	// Get the class name and the value count. 
+	retCode = RegQueryInfoKey( hKey, NULL, NULL, NULL, NULL, NULL, NULL, 
 								&cValues, &cchMaxValue, &cbMaxValueData, NULL, NULL); 
-     //  search values of keys 
-    if (cValues) 
-    {
-        for (DWORD i=0, retCode=ERROR_SUCCESS; i<cValues; i++) 
-        { 
-            cchValue = 255; //16383; 
-            memset ( bData, 0, 1024 );
+	 //  search values of keys 
+	if (cValues) 
+	{
+		for (DWORD i=0, retCode=ERROR_SUCCESS; i<cValues; i++) 
+		{ 
+			cchValue = 255; //16383; 
+			memset ( bData, 0, 1024 );
 			dwDataLen = 1024;
 			DWORD dwType = 0;
-            retCode = RegEnumValue(hKey, i,	achValue, &cchValue, NULL, &dwType, bData, &dwDataLen );
+			retCode = RegEnumValue(hKey, i,	achValue, &cchValue, NULL, &dwType, bData, &dwDataLen );
 			
 			if (retCode == ERROR_SUCCESS ) 
-            { 
-			    if ( (dwType == REG_DWORD) && (_tcscmp( _T("logging"), achValue) == 0 ) )
+			{ 
+				if ( (dwType == REG_DWORD) && (_tcscmp( _T("logging"), achValue) == 0 ) )
 				{
-					memcpy ( &m_bLogStarted, bData, 4 ); 
+					//memcpy ( &m_bLogStarted, bData, 4 ); 
 				}
 
 				if ( (dwType == REG_SZ) && (_tcscmp( _T("file"), achValue) == 0) )

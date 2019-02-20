@@ -44,12 +44,12 @@ public:
   };
 
 public:
-	// конструкторы - деструкторы 
+	// РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹ - РґРµСЃС‚СЂСѓРєС‚РѕСЂС‹ 
 	CCommPort();
 	CCommPort( const CString& sPortname );
 	virtual ~CCommPort();
 
-	// инициализация порта и др.
+	// РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїРѕСЂС‚Р° Рё РґСЂ.
 	BOOL Open ( CString sPortName, DWORD dwBaudRate = CBR_19200, BYTE bDataBits = 8, BYTE stopbit = OneStopBit, 
 				BYTE parity = NoParity, BYTE fc = NoFlowControl );
 
@@ -60,25 +60,25 @@ public:
 	BOOL IsOpen() const { return m_hComm != INVALID_HANDLE_VALUE; };
 	operator HANDLE() const { return m_hComm; };
 
-	// получить набор портов 
+	// РїРѕР»СѓС‡РёС‚СЊ РЅР°Р±РѕСЂ РїРѕСЂС‚РѕРІ 
 	static DWORD GetAvailablePorts ( CStringList* portList );
 
-	// чтение запись 
-	// асинхронная
+	// С‡С‚РµРЅРёРµ Р·Р°РїРёСЃСЊ 
+	// Р°СЃРёРЅС…СЂРѕРЅРЅР°СЏ
 	virtual DWORD Read ( LPVOID lpBuf, DWORD dwCount );
 	virtual DWORD Write(LPCVOID lpBuf, DWORD dwCount );
 		
-	// Конфигурация порта
+	// РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РїРѕСЂС‚Р°
     BOOL GetConfig( COMMCONFIG& config);
     BOOL SetConfig( COMMCONFIG& config);
 	BOOL SetState ( LPDCB dcb);
 	BOOL GetState ( LPDCB dcb);
 
-	// ТаймАуты
+	// РўР°Р№РјРђСѓС‚С‹
 	BOOL SetTimeouts( LPCOMMTIMEOUTS lpCommTimeouts );
 	BOOL GetTimeouts( LPCOMMTIMEOUTS lpCommTimeouts ); 
 
-	// работа с буфферами
+	// СЂР°Р±РѕС‚Р° СЃ Р±СѓС„С„РµСЂР°РјРё
 	BOOL Purge ( DWORD dwFlags );
 	BOOL ClearWriteQueue ();
 	BOOL ClearReadQueue  ();
@@ -86,7 +86,7 @@ public:
 	BOOL AbortAllWrite   ();
 	BOOL Flush           ();
 
-	// управление передачей
+	// СѓРїСЂР°РІР»РµРЅРёРµ РїРµСЂРµРґР°С‡РµР№
 	BOOL TransmitChar( char cChar );
 	BOOL SetBreak();
 	BOOL ClearBreak();

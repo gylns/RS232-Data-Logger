@@ -32,9 +32,13 @@ private:
 public:
 	bool m_bIsActive;   
 	BOOL m_bLogStarted;
+	BOOL m_bPollStarted;
 	BOOL m_bAppend; 
 	CString m_sLogFile; 
 	CString m_sStatusMessage; 
+	size_t m_stPollCounts;
+	int m_iPollDelay;
+	int m_iPollRemainder;
 	
 	DWORD m_dwBaudRate;
 	int  m_iIndexDataBits;

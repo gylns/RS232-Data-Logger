@@ -30,6 +30,8 @@ CRedirectDlg::CRedirectDlg(CWnd* pParent /*=NULL*/)
 	, m_sRecvBytes(_T("0 bytes"))
 	, m_sTotalFileSize(_T("0 bytes"))
 	, m_sErrorStatus(_T(""))
+	, m_iPollDelay(10)
+	, m_sTotalPollCounts(_T("0"))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -49,6 +51,8 @@ void CRedirectDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_STATIC_TOTAL, m_sTotalFileSize);
 	DDX_Control(pDX, IDC_STATIC_HOME, m_HomeHlink);
 	DDX_Text(pDX, IDC_STATIC_STATUS, m_sErrorStatus);
+	DDX_Text(pDX, IDC_ED_POLLDELAY, m_iPollDelay);
+	DDX_Text(pDX, IDC_STATIC_TOTAL2, m_sTotalPollCounts);
 }
 
 BEGIN_MESSAGE_MAP(CRedirectDlg, CDialog)
@@ -69,6 +73,9 @@ BEGIN_MESSAGE_MAP(CRedirectDlg, CDialog)
 	ON_MESSAGE  (WM_USER_CHANGE_STATUS, OnWriteStatus  )
 	ON_NOTIFY   (NM_CUSTOMDRAW,  IDC_LIST_PORTS, OnCustomdrawList)
 	ON_COMMAND(ID_HELP, OnBnClickedBtHelp)
+	ON_BN_CLICKED(IDC_BT_STARTPOLL, &CRedirectDlg::OnBnClickedBtStartpoll)
+	ON_WM_TIMER()
+	ON_EN_KILLFOCUS(IDC_ED_POLLDELAY, &CRedirectDlg::OnEnKillfocusEdPolldelay)
 END_MESSAGE_MAP()
 
 
@@ -92,6 +99,7 @@ BOOL CRedirectDlg::OnInitDialog()
 	m_HomeHlink.SetHyperLink( CString( _T("http:\\\\www.eltima.com\\products") ) );
 	m_HomeHlink.SetFontBold( true );
 	m_HomeHlink.SetTextColor( RGB( 0, 0, 255 ) );
+	m_HomeHlink.ShowWindow(SW_HIDE);
 
 
 	CWnd* pWnd = (CWnd*)GetDlgItem( IDC_LIST_PORTS );
@@ -102,8 +110,15 @@ BOOL CRedirectDlg::OnInitDialog()
 	
 	GetAvailablePorts();
 
+	// set item selected
+	m_ListPorts.SetItemState(m_iCurItemSel, LVIS_SELECTED, LVIS_SELECTED);
+	m_ListPorts.SetSelectionMark(m_iCurItemSel);
+
+	pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+	pWnd->EnableWindow(FALSE);
+
 	// fill controls 
-    for ( int i=0; i<NUM_BAUDRATE; i++ )
+	for ( int i=0; i<NUM_BAUDRATE; i++ )
 	{
 		m_cbBaudrate.AddString( VAL_BAUDRATE[i] );
 	}
@@ -132,6 +147,9 @@ BOOL CRedirectDlg::OnInitDialog()
 		m_cbFC.AddString( VAL_FC[i] );
 	}
 	m_cbFC.SetCurSel( 2 );
+
+	// start a 1s timer
+	SetTimer(1000, 1000, NULL);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -176,7 +194,7 @@ HCURSOR CRedirectDlg::OnQueryDragIcon()
 void CRedirectDlg::OnEnChangeEdLogfile()
 {
 	UpdateData();
-	if ( m_sLogFile.GetLength() )
+	if (!m_Ports[m_iCurItemSel]->m_bPollStarted && m_sLogFile.GetLength())
 	{
 		CWnd* pWnd = (CWnd*)GetDlgItem( IDC_BT_STARTLOG );
 		pWnd ->EnableWindow( TRUE );
@@ -238,6 +256,9 @@ void CRedirectDlg::OnBnClickedBtStartlog()
 
 		m_Ports[ m_iCurItemSel ] ->m_bLogStarted = FALSE;
 
+		pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+		pWnd->EnableWindow(FALSE);
+
 		m_sErrorStatus = m_Ports[m_iCurItemSel] ->m_sStatusMessage;
 		UpdateData( FALSE );
 	}
@@ -274,6 +295,10 @@ void CRedirectDlg::OnBnClickedBtStartlog()
 			m_ListPorts.SetItemText( m_iCurItemSel, 1, STRING_ENABLE );
 
 			m_Ports[ m_iCurItemSel ] ->m_bLogStarted = TRUE;
+
+			pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+			pWnd->EnableWindow(TRUE);
+			pWnd->SetWindowText(_T("Start polling"));
 		}
 		else
 		{
@@ -500,6 +525,27 @@ void CRedirectDlg::UpdateSettings()
 	
 		pWnd = (CWnd*)GetDlgItem( IDC_CHECK_APPEND );
 		pWnd ->EnableWindow( FALSE );
+
+		if (m_Ports[m_iCurItemSel]->m_bPollStarted)
+		{
+			pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTLOG);
+			pWnd->EnableWindow(FALSE);
+
+			pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+			pWnd->SetWindowText(_T("Stop polling"));
+			pWnd->EnableWindow(TRUE);
+
+			pWnd = (CWnd*)GetDlgItem(IDC_ED_POLLDELAY);
+			pWnd->EnableWindow(FALSE);
+		}
+		else
+		{
+			pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+			pWnd->SetWindowText(_T("Start polling"));
+			pWnd->EnableWindow(TRUE);
+			pWnd = (CWnd*)GetDlgItem(IDC_ED_POLLDELAY);
+			pWnd->EnableWindow(TRUE);
+		}
 	}
 	else
 	{
@@ -523,6 +569,9 @@ void CRedirectDlg::UpdateSettings()
 	
 		pWnd = (CWnd*)GetDlgItem( IDC_CHECK_APPEND );
 		pWnd ->EnableWindow( TRUE );
+
+		pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+		pWnd ->EnableWindow(FALSE);
 	}
 
 	m_bFileAppend = m_Ports[m_iCurItemSel] ->m_bAppend;
@@ -537,10 +586,11 @@ void CRedirectDlg::UpdateSettings()
 	m_cbFC.SetCurSel	  ( m_Ports[m_iCurItemSel] ->m_iIndexFlowCtrl );
 
 	m_sErrorStatus = m_Ports[m_iCurItemSel] ->m_sStatusMessage;
-    
+	
 	CString sWrittenBytes, sTotalBytes;
-	sTotalBytes.Format  ( _T("%d bytes"),  m_Ports[m_iCurItemSel] ->GetFileTotalBytes()  );
-	sWrittenBytes.Format( _T("%d bytes"),  m_Ports[m_iCurItemSel] ->GetFileWrittenBytes() );
+	m_sTotalFileSize.Format  ( _T("%d bytes"),  m_Ports[m_iCurItemSel] ->GetFileTotalBytes()  );
+	m_sRecvBytes.Format( _T("%d bytes"),  m_Ports[m_iCurItemSel] ->GetFileWrittenBytes() );
+	m_sTotalPollCounts.Format(_T("%d"), m_Ports[m_iCurItemSel]->m_stPollCounts);
 
 	UpdateData( FALSE );
 
@@ -553,13 +603,13 @@ void CRedirectDlg::OnCustomdrawList ( NMHDR* pNMHDR, LRESULT* pResult )
 {
 	NMLVCUSTOMDRAW* pLVCD = reinterpret_cast<NMLVCUSTOMDRAW*>( pNMHDR );
 
-    *pResult = 0;
+	*pResult = 0;
 
 	if ( CDDS_PREPAINT == pLVCD->nmcd.dwDrawStage )
-    {
-       *pResult = CDRF_NOTIFYITEMDRAW;
-    }
-    else 
+	{
+	   *pResult = CDRF_NOTIFYITEMDRAW;
+	}
+	else 
 	{
 		if ( CDDS_ITEM == pLVCD->nmcd.dwDrawStage )
 		{
@@ -567,7 +617,7 @@ void CRedirectDlg::OnCustomdrawList ( NMHDR* pNMHDR, LRESULT* pResult )
 		}
 		
 		
-        if ( CDDS_ITEMPREPAINT == pLVCD->nmcd.dwDrawStage )
+		if ( CDDS_ITEMPREPAINT == pLVCD->nmcd.dwDrawStage )
 		{
 			if ( !m_Ports[ pLVCD->nmcd.dwItemSpec ] ->m_bLogStarted )
 			{
@@ -577,4 +627,105 @@ void CRedirectDlg::OnCustomdrawList ( NMHDR* pNMHDR, LRESULT* pResult )
 			*pResult = CDRF_DODEFAULT;
 		}
 	}
+}
+
+void CRedirectDlg::OnBnClickedBtStartpoll()
+{
+	if (m_Ports[m_iCurItemSel]->m_bPollStarted)
+	{
+		m_Ports[m_iCurItemSel]->m_bPollStarted = FALSE;
+
+		CWnd* pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+		pWnd->SetWindowText(_T("Start polling"));
+
+		pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTLOG);
+		pWnd->EnableWindow(TRUE);
+
+		pWnd = (CWnd*)GetDlgItem(IDC_ED_POLLDELAY);
+		pWnd->EnableWindow(TRUE);
+	}
+	else
+	{
+		UpdateData();
+		m_Ports[m_iCurItemSel]->m_bPollStarted = TRUE;
+		m_Ports[m_iCurItemSel]->m_iPollDelay = m_iPollDelay * 60;
+		m_Ports[m_iCurItemSel]->m_iPollRemainder = 0;
+
+		CWnd* pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTPOLL);
+		pWnd->SetWindowText(_T("Stop polling"));
+
+		pWnd = (CWnd*)GetDlgItem(IDC_BT_STARTLOG);
+		pWnd->EnableWindow(FALSE);
+
+		pWnd = (CWnd*)GetDlgItem(IDC_ED_POLLDELAY);
+		pWnd->EnableWindow(FALSE);
+	}
+}
+
+
+UINT16 crcA001(BYTE *buf, int len)
+{
+	UINT16 crc = 0xFFFF;
+	for (int i = 0; i < len; i++)
+	{
+		crc = crc ^ buf[i];
+		for (int j = 0; j < 8; j++)
+		{
+			if ((crc & 0x0001) > 0)
+			{
+				crc = crc >> 1;
+				crc = crc ^ 0xA001;
+			}
+			else
+				crc = crc >> 1;
+		}
+	}
+	return crc;
+}
+
+void CRedirectDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	BYTE req[8];
+	req[0] = 0x01;
+	req[1] = 0x03;
+	req[2] = 0x10;
+	req[3] = 0x00;
+	req[4] = 0x00;
+	req[5] = 0x56;
+
+	UINT16 crc = crcA001(req, 6);
+	req[6] = crc & 0xFF;
+	req[7] = crc >> 8;
+	
+	for (auto &t : m_Ports)
+	{
+		if (t->m_bPollStarted)
+		{
+			if (t->m_iPollRemainder == 0)
+			{
+				if (t->Write(req, sizeof(req)) == sizeof(req))
+				{
+					t->m_stPollCounts++;
+					if (t == m_Ports[m_iCurItemSel])
+					{
+						m_sTotalPollCounts.Format(_T("%d"), t->m_stPollCounts);
+						UpdateData(FALSE);
+					}
+				}
+				t->m_iPollRemainder = t->m_iPollDelay;
+			}
+			else
+			{
+				t->m_iPollRemainder--;
+			}
+		}
+	}
+	CDialog::OnTimer(nIDEvent);
+}
+
+
+void CRedirectDlg::OnEnKillfocusEdPolldelay()
+{
+	UpdateData();
+	m_Ports[m_iCurItemSel]->m_iPollDelay = m_iPollDelay * 60;
 }
